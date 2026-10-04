@@ -25,6 +25,18 @@ services:
       - .env
     restart: unless-stopped
 
+  mariadb:
+    build: ./requirements/mariadb
+    image: mariadb
+    container_name: mariadb
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - inception
+    env_file:
+      - .env
+    restart: unless-stopped
+
 networks:
   inception:
     driver: bridge
