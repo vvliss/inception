@@ -17,6 +17,8 @@ services:
     build: ./requirements/wordpress
     image: wordpress
     container_name: wordpress
+    depends_on:
+      - mariadb
     volumes:
       - wordpress_data:/var/www/html
     networks:
