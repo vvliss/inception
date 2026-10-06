@@ -6,6 +6,7 @@ SOCKET="/run/mysqld/mysqld.sock"
 
 mkdir -p /run/mysqld
 chown mysql:mysql /run/mysqld
+unset MYSQL_HOST MYSQL_PORT
 
 if [ ! -d "/var/lib/mysql/mysql" ]; then
     echo "Initializing MariaDB..."
