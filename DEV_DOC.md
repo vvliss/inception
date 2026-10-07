@@ -84,7 +84,7 @@ The named volumes store their data in `/home/wilisson/data/`:
 mkdir -p /home/wilisson/data/wordpress /home/wilisson/data/mariadb
 ```
 
-(The `Makefile` normally creates them automatically.)
+(`make` creates them automatically before starting the containers.)
 
 ## 2. Building and Launching the Project
 
@@ -92,11 +92,12 @@ mkdir -p /home/wilisson/data/wordpress /home/wilisson/data/mariadb
 
 | Command | Action |
 | :--- | :--- |
-| `make` | Create the data directories, build the images and start the containers (`docker compose up -d --build`). |
+| `make` / `make up` | Create the data directories, build the images and start the containers (`docker compose up -d --build`). |
 | `make down` | Stop and remove the containers (`docker compose down`). Volumes are kept. |
-| `make clean` | Stop the containers and remove images and the network. |
-| `make fclean` | `clean` + remove volumes and the data in `/home/wilisson/data/`. |
-| `make re` | `fclean` followed by `make`. |
+| `make clean` | `docker compose down -v` (removes containers, network and Docker volumes), then `docker system prune -af` (removes **all** unused images, containers and networks on the machine, not only this project's). |
+| `make re` | `clean` followed by `make` — rebuilds everything from scratch. |
+
+> `make clean` does not delete the files stored in `/home/wilisson/data/`. For a full reset of the data, remove them manually: `sudo rm -rf /home/wilisson/data/wordpress/* /home/wilisson/data/mariadb/*`.
 
 ### Using Docker Compose directly
 
@@ -165,8 +166,8 @@ openssl s_client -connect wilisson.42.fr:443 -tls1_1   # must FAIL
 Persistence rules:
 
 * `make down` / `docker compose down` removes containers but **keeps** the volumes — the data survives.
-* Rebuilding images (`make re` without cleaning the data directories) keeps the data as long as the host directories are not deleted.
-* `make fclean` deletes the data in `/home/wilisson/data/` — the next `make` creates a fresh WordPress and an empty database.
+* `make clean` / `make re` remove the Docker volumes and images but **not** the files in `/home/wilisson/data/`, so the data survives a rebuild as long as those host directories are not deleted.
+* Deleting the contents of `/home/wilisson/data/wordpress` and `/home/wilisson/data/mariadb` (as root) gives the next `make` a fresh WordPress and an empty database.
 * Initialization scripts (database creation, WordPress installation) run only when the data directory is empty, so restarting never overwrites existing content.
 
 ### Backup (simple approach)
@@ -182,9 +183,9 @@ sudo tar czf inception-backup.tar.gz /home/wilisson/data
 | `make` fails with permission errors | The user is not in the `docker` group, or the data directories are owned by `root`. Check ownership of `/home/wilisson/data`. |
 | `wilisson.42.fr` does not resolve | Missing entry in `/etc/hosts`. |
 | Port 443 already in use | Another service is using it (`sudo ss -tlnp | grep 443`). Stop it. |
-| WordPress shows "Error establishing a database connection" | MariaDB not ready yet, or credentials in `.env` do not match the already-initialized database. Check `docker logs mariadb`; after changing credentials run `make fclean` and `make`. |
+| WordPress shows "Error establishing a database connection" | MariaDB not ready yet, or credentials in `.env` do not match the already-initialized database. Check `docker logs mariadb`; after changing credentials run `make clean`, delete the contents of `/home/wilisson/data/` and run `make` again. |
 | 502 Bad Gateway | PHP-FPM is not running or not listening on the expected port. Check `docker logs wordpress` and the `fastcgi_pass` directive in the Nginx config. |
-| Container restarts in a loop | The main process exits. Read the logs; make sure services run in the foreground (e.g. `nginx -g "daemon off;"`, `php-fpm -F`, `mysqld_safe`/`mariadbd`). |
+| Container restarts in a loop | The main process exits. Read the logs; make sure services run in the foreground (e.g. `nginx -g "daemon off;"`, `php-fpm -F`, `mariadbd`). |
 | Changes in a `Dockerfile` are not applied | Rebuild without cache: `docker compose build --no-cache`. |
 
 ## 6. Notes on Subject Compliance
@@ -192,6 +193,7 @@ sudo tar czf inception-backup.tar.gz /home/wilisson/data
 * No ready-made service images — only the base Debian/Alpine image is pulled.
 * Nginx accepts **only TLSv1.2 / TLSv1.3** on port 443.
 * No `network: host`, `links` or `--link`; a custom network is declared.
-* No infinite-loop hacks (`tail -f`, `sleep infinity`, `while true`) as the container's main command.
+* No hacky patches as the container's main command or in entrypoint scripts (`tail -f`, `bash`, `sleep infinity`, `while true`); the service itself runs as PID 1 in the foreground.
+* Each image has the same name as its service (`nginx`, `wordpress`, `mariadb`) and the containers restart automatically after a crash (`restart` policy in `docker-compose.yml`).
 * No passwords inside `Dockerfile`s; all credentials are stored in `.env`, which is not committed to Git.
 * The `latest` tag is not used.

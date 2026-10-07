@@ -46,13 +46,23 @@ make down
 make
 ```
 
-### Remove everything (including data)
+### Clean up (remove containers, volumes and images)
 
 ```sh
-make fclean
+make clean
 ```
 
-> ⚠️ **Warning:** this permanently deletes the website content and the database stored in `/home/wilisson/data/`.
+This removes the containers, the Docker volumes and **all unused Docker images** on the machine (`docker system prune -af`), so the next `make` rebuilds everything from scratch. The files in `/home/wilisson/data/` stay on the host.
+
+### Remove the stored data (full reset)
+
+To also delete the website content and the database, run `make clean` and then remove the files stored on the host:
+
+```sh
+sudo rm -rf /home/wilisson/data/wordpress/* /home/wilisson/data/mariadb/*
+```
+
+> ⚠️ **Warning:** this permanently deletes the website content and the database.
 
 ## 3. Accessing the Website and the Administration Panel
 
@@ -94,7 +104,7 @@ Notes:
 
 * This file is **not** stored in Git — it exists only on the machine running the project.
 * The WordPress administrator username and the passwords are defined in it before the first start.
-* To change a password after the first start, change it in the WordPress panel (*Users → Profile*). Editing `.env` alone does **not** update an already-initialized database. A full reset (`make fclean`, then `make`) re-initializes everything with the values from `.env`.
+* To change a password after the first start, change it in the WordPress panel (*Users → Profile*). Editing `.env` alone does **not** update an already-initialized database. A full reset (`make clean`, removing the data in `/home/wilisson/data/` as described above, then `make`) re-initializes everything with the values from `.env`.
 * Keep this file private and never share them.
 
 ## 5. Checking That Services Are Running Correctly

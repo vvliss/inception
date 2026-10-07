@@ -139,11 +139,10 @@ The subject requires **named volumes** for the two data stores; they are configu
 
 | Command | Action |
 | :--- | :--- |
-| `make` | Build the images and start all containers. |
+| `make` (or `make up`) | Create the data directories, build the images and start all containers in the background. |
 | `make down` | Stop and remove the containers (data is kept). |
-| `make clean` | Stop the containers and remove images / network. |
-| `make fclean` | Full cleanup, including the data in `/home/wilisson/data/`. |
-| `make re` | Full rebuild from scratch. |
+| `make clean` | Stop the containers and remove the Docker volumes, then run `docker system prune -af` (removes all unused images, containers and networks). Files in `/home/wilisson/data/` stay on the host. |
+| `make re` | `clean` followed by a fresh `make` (full rebuild). |
 
 More details:
 
