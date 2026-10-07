@@ -38,44 +38,43 @@ cd ~/inception
 
 ```
 inception/
+├── .gitignore                   # excludes srcs/.env from Git
 ├── Makefile
 ├── README.md
 ├── USER_DOC.md
 ├── DEV_DOC.md
-├── secrets/                     # passwords (ignored by Git)
 └── srcs/
+    ├── .env                     # configuration and credentials (ignored by Git)
     ├── docker-compose.yml
-    ├── .env                     # non-sensitive configuration (ignored by Git)
     └── requirements/
-        ├── nginx/
-        ├── wordpress/
-        └── mariadb/
+        ├── mariadb/             # Dockerfile, conf/, tools/
+        ├── nginx/               # Dockerfile, conf/, tools/
+        └── wordpress/
+            ├── Dockerfile
+            ├── conf/
+            │   └── www.conf     # PHP-FPM pool configuration
+            └── tools/           # setup script(s)
 ```
 
 ### Configuration files
 
-**`srcs/.env`** — non-sensitive variables, for example:
+**`srcs/.env`** — all variables, including passwords, for example:
 
 ```
 DOMAIN_NAME=wilisson.42.fr
 MYSQL_DATABASE=wordpress
 MYSQL_USER=wpuser
+MYSQL_PASSWORD=<db user password>
+MYSQL_ROOT_PASSWORD=<db root password>
 WP_ADMIN_USER=<admin login>
+WP_ADMIN_PASSWORD=<admin password>
 WP_ADMIN_EMAIL=<admin email>
 WP_USER=<second user login>
+WP_USER_PASSWORD=<second user password>
 WP_USER_EMAIL=<second user email>
 ```
 
-**`secrets/`** — one file per password, for example:
-
-```
-secrets/db_root_password.txt
-secrets/db_password.txt
-secrets/wp_admin_password.txt
-secrets/wp_user_password.txt
-```
-
-Both are excluded from Git (`.gitignore`). The WordPress administrator username must **not** contain `admin` / `administrator` (subject requirement).
+The file is excluded from Git (`.gitignore`). The WordPress administrator username must **not** contain `admin` / `administrator` (subject requirement).
 
 ### Host data directories
 
@@ -183,7 +182,7 @@ sudo tar czf inception-backup.tar.gz /home/wilisson/data
 | `make` fails with permission errors | The user is not in the `docker` group, or the data directories are owned by `root`. Check ownership of `/home/wilisson/data`. |
 | `wilisson.42.fr` does not resolve | Missing entry in `/etc/hosts`. |
 | Port 443 already in use | Another service is using it (`sudo ss -tlnp | grep 443`). Stop it. |
-| WordPress shows "Error establishing a database connection" | MariaDB not ready yet, or credentials in `.env` / `secrets/` do not match the already-initialized database. Check `docker logs mariadb`; after changing credentials run `make fclean` and `make`. |
+| WordPress shows "Error establishing a database connection" | MariaDB not ready yet, or credentials in `.env` do not match the already-initialized database. Check `docker logs mariadb`; after changing credentials run `make fclean` and `make`. |
 | 502 Bad Gateway | PHP-FPM is not running or not listening on the expected port. Check `docker logs wordpress` and the `fastcgi_pass` directive in the Nginx config. |
 | Container restarts in a loop | The main process exits. Read the logs; make sure services run in the foreground (e.g. `nginx -g "daemon off;"`, `php-fpm -F`, `mysqld_safe`/`mariadbd`). |
 | Changes in a `Dockerfile` are not applied | Rebuild without cache: `docker compose build --no-cache`. |
@@ -194,5 +193,5 @@ sudo tar czf inception-backup.tar.gz /home/wilisson/data
 * Nginx accepts **only TLSv1.2 / TLSv1.3** on port 443.
 * No `network: host`, `links` or `--link`; a custom network is declared.
 * No infinite-loop hacks (`tail -f`, `sleep infinity`, `while true`) as the container's main command.
-* No passwords inside `Dockerfile`s; secrets and `.env` are used, and are not committed to Git.
+* No passwords inside `Dockerfile`s; all credentials are stored in `.env`, which is not committed to Git.
 * The `latest` tag is not used.

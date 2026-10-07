@@ -88,15 +88,14 @@ Log in with the **administrator** account. From the panel you can create posts a
 
 | What | Where it is stored |
 | :--- | :--- |
-| Non-sensitive settings (domain, database name, usernames) | `srcs/.env` |
-| Passwords (database, WordPress administrator, WordPress user) | Files in the `secrets/` directory |
+| All settings and credentials (domain, database name, usernames, passwords for the database and WordPress) | `srcs/.env` |
 
 Notes:
 
-* These files are **not** stored in Git — they exist only on the machine running the project.
-* The WordPress administrator username and the passwords are defined in these files before the first start.
-* To change a password after the first start, change it in the WordPress panel (*Users → Profile*). Editing the secret file alone does **not** update an already-initialized database. A full reset (`make fclean`, then `make`) re-initializes everything with the values from the files.
-* Keep these files private and never share them.
+* This file is **not** stored in Git — it exists only on the machine running the project.
+* The WordPress administrator username and the passwords are defined in it before the first start.
+* To change a password after the first start, change it in the WordPress panel (*Users → Profile*). Editing `.env` alone does **not** update an already-initialized database. A full reset (`make fclean`, then `make`) re-initializes everything with the values from `.env`.
+* Keep this file private and never share them.
 
 ## 5. Checking That Services Are Running Correctly
 

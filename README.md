@@ -27,23 +27,28 @@ Supporting elements:
 
 ```
 inception/
+├── .gitignore               # excludes srcs/.env from Git
 ├── Makefile
 ├── README.md
 ├── USER_DOC.md
 ├── DEV_DOC.md
-├── secrets/                 # passwords (not committed to Git)
 └── srcs/
+    ├── .env                 # all configuration and credentials (not committed)
     ├── docker-compose.yml
-    ├── .env                 # non-sensitive configuration (not committed)
     └── requirements/
-        ├── nginx/           # Dockerfile, nginx.conf, entrypoint script
-        ├── wordpress/       # Dockerfile, php-fpm config, setup script
-        └── mariadb/         # Dockerfile, config, init script
+        ├── mariadb/         # Dockerfile, conf/, tools/
+        ├── nginx/           # Dockerfile, conf/, tools/
+        └── wordpress/
+            ├── Dockerfile
+            ├── conf/
+            │   └── www.conf # PHP-FPM pool configuration
+            └── tools/       # setup script(s)
 ```
 
 * The `Makefile` builds and manages the whole stack through `docker compose`.
-* `docker-compose.yml` defines the services, the network, the volumes and the secrets.
-* Each directory in `requirements/` contains the `Dockerfile` and the configuration files / scripts for a single service.
+* `docker-compose.yml` defines the services, the network, the volumes and loads the configuration from `.env`.
+* Each directory in `requirements/` contains the `Dockerfile` of a single service, its configuration files (`conf/`) and setup scripts (`tools/`).
+* `.gitignore` keeps the `srcs/.env` file (with credentials) out of the repository.
 
 ### Main design choices
 
@@ -51,7 +56,7 @@ inception/
 * **Custom Dockerfiles** based on a pinned penultimate stable version of Debian/Alpine — full control over what is installed.
 * **Nginx as the single entry point** — MariaDB and WordPress are not exposed to the host; only port 443 is published.
 * **TLS only** — no plain HTTP; a self-signed certificate is generated for `wilisson.42.fr`.
-* **Credentials kept out of images and Git** — sensitive values are passed via Docker secrets / ignored files, never hardcoded in `Dockerfile`s.
+* **Credentials kept out of images and Git** — all configuration and passwords are stored in the `.env` file, which is excluded from Git (`.gitignore`) and never hardcoded in `Dockerfile`s.
 * **Persistent data** — database and website files survive container removal and rebuilds.
 * **PID 1 handled properly** — services run in the foreground (no `tail -f`, `sleep infinity` or `while true` hacks).
 
@@ -76,7 +81,7 @@ In this project the VM provides the safe, isolated host environment, while Docke
 | **Visibility** | Visible via `docker inspect`, `/proc`, logs and child processes. | Not exposed in the environment or in `docker inspect`. |
 | **Use case** | Non-sensitive configuration (domain name, database name, usernames). | Passwords, API keys, certificates. |
 
-Here, non-sensitive values live in `.env`, while passwords are stored as secrets and read from files by the containers' scripts.
+In this project **all configuration and credentials are stored in the `.env` file** and passed to the containers as environment variables by Docker Compose. The file is excluded from Git and the values are never hardcoded in `Dockerfile`s. Docker secrets would be the safer choice for a production environment, but they are not required here, so a single `.env` file keeps the setup simple.
 
 ### Docker Network vs Host Network
 
@@ -120,9 +125,7 @@ The subject requires **named volumes** for the two data stores; they are configu
    cd ~/inception
    ```
 
-2. Create the configuration files (they are not stored in Git):
-   * `srcs/.env` — non-sensitive variables (domain name, database name, usernames, e-mails).
-   * `secrets/` — files with passwords (database root password, database user password, WordPress admin and user passwords).
+2. Create the configuration file `srcs/.env` (it is not stored in Git). It contains all variables: domain name, database name, usernames, e-mails and passwords (database root and user, WordPress administrator and user).
 
 3. Build and start everything:
 
